@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 import ldb
 from samba import dsdb
@@ -50,7 +50,7 @@ class SambaClient(object):
                 dsdb.UF_ACCOUNTDISABLE,
             )
 
-            filter = "(&(objectClass=user)(userAccountControl:%s:=%u)%s%s)" % (
+            filter_ = "(&(objectClass=user)(userAccountControl:%s:=%u)%s%s)" % (
                 ldb.OID_COMPARATOR_AND,
                 dsdb.UF_NORMAL_ACCOUNT,
                 filter_disabled,
@@ -60,7 +60,7 @@ class SambaClient(object):
             lookup = self._client.search(
                 search_dn,
                 scope=ldb.SCOPE_SUBTREE,
-                expression=filter,
+                expression=filter_,
                 attrs=["samaccountname", "telephonenumber", "mail", "dn"],
             )
 
@@ -192,3 +192,134 @@ class SambaClient(object):
             raise
         else:
             self._client.transaction_commit()
+
+    def add_group(self, group_request: dict):
+        try:
+            self._client.transaction_start()
+            self._client.newgroup(**group_request)
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+    def delete_group(self, groupname: str):
+        try:
+            self._client.transaction_start()
+            self._client.deletegroup(groupname)
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+    def _add_or_remove_users_to_group(
+        self, groupname: str, members: List[str], to_add: bool = True
+    ):
+        try:
+            self._client.transaction_start()
+            self._client.add_remove_group_members(
+                groupname, members, add_members_operation=to_add
+            )
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+    def add_users_to_group(self, groupname: str, members: List[str]):
+        return self._add_or_remove_users_to_group(
+            groupname=groupname, members=members, to_add=True
+        )
+
+    def remove_users_from_group(self, groupname: str, members: List[str]):
+        return self._add_or_remove_users_to_group(
+            groupname=groupname, members=members, to_add=False
+        )
+
+    def list_groups(
+        self,
+    ):
+        result = []
+        try:
+            self._client.transaction_start()
+            search_dn = self._client.domain_dn()
+            # filter_str = "(objectclass=group)"
+            filter_str = "(objectclass=group)"
+            lookup = self._client.search(
+                search_dn,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=filter_str,
+                attrs=[
+                    "samaccountname",
+                    "groupType",
+                    "description",
+                    "mail",
+                    "info",
+                ],
+            )
+            if len(lookup) == 0:
+                return []
+
+            for entry in lookup:
+                obj = {
+                    "sAMAccountName": entry.get("samaccountname", idx=0),
+                    "groupType": entry.get("groupType", idx=0),
+                    "description": entry.get("description", idx=0),
+                    "mail": entry.get("mail", idx=0),
+                    "info": entry.get("info", idx=0),
+                }
+                result.append(obj)
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+        return result
+
+    def list_users_by_group(self, groupname: str):
+
+        result = []
+        self._client.transaction_start()
+        try:
+            search_dn = self._client.domain_dn()
+            group_str = f"(sAMAccountName={groupname})"
+            group_lookup = self._client.search(
+                search_dn,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=group_str,
+                attrs=["distinguishedName", "member"],
+            )
+            if len(group_lookup) == 0:
+                self._client.transaction_commit()
+                return []
+            dn = group_lookup[0].get("distinguishedName", idx=0)
+            filter_query = f"(&(objectclass=user)(memberOf={dn}))"
+            lookup = self._client.search(
+                search_dn,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=filter_query,
+                attrs=["samaccountname", "telephonenumber", "mail", "dn"],
+            )
+
+            if len(lookup) == 0:
+                self._client.transaction_commit()
+                return []
+            for entry in lookup:
+                dn_obj = entry.get("dn", idx=0)
+                obj = {
+                    "usermame": entry.get("samaccountname", idx=0),
+                    "telephonenumber": entry.get("telephonenumber", idx=0),
+                    "mail": entry.get("mail", idx=0),
+                    "ou_dn": str(dn_obj) if dn_obj else None,
+                }
+                result.append(obj)
+
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+        return result

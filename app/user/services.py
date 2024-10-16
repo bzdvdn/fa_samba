@@ -22,6 +22,8 @@ from .schemas import (
     UpdateUserPassword,
     AddOrganizationUnit,
     MoveUserOU,
+    AddGroup,
+    UserGroupManage,
 )
 
 crypt = Crypt(SECRET_SALT)
@@ -166,6 +168,74 @@ class AuthServiceManager:
         client = SambaClient(**user_data)
         try:
             client.delete_organization_unit(ou_dn)
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def add_group(
+        self, credentials: HTTPAuthorizationCredentials, add_group: AddGroup
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.add_group(add_group.to_request())
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def delete_group(
+        self, credentials: HTTPAuthorizationCredentials, groupname: str
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.delete_group(groupname)
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def add_users_to_group(
+        self,
+        credentials: HTTPAuthorizationCredentials,
+        user_group_manage: UserGroupManage,
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.add_users_to_group(
+                user_group_manage.groupname, user_group_manage.members
+            )
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def remove_users_from_group(
+        self,
+        credentials: HTTPAuthorizationCredentials,
+        user_group_manage: UserGroupManage,
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.remove_users_from_group(
+                user_group_manage.groupname, user_group_manage.members
+            )
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def list_groups(self, credentials: HTTPAuthorizationCredentials) -> list:
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            result = client.list_groups()
+            return result
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def list_users_by_group(
+        self, credentials: HTTPAuthorizationCredentials, groupname: str
+    ) -> list:
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            result = client.list_users_by_group(groupname)
+            return result
         except Exception as e:
             raise HTTPException(400, str(e))
 

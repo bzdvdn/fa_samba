@@ -12,6 +12,7 @@ from .schemas import (
     UpdateUserPassword,
     UserList,
     MoveUserOU,
+    UpdateTokensSchema,
 )
 from .security import auth_scheme, get_current_user
 from .services import manager
@@ -27,6 +28,14 @@ api_router = APIRouter()
 )
 async def login_for_access_token(auth_data: AuthUser):
     return await manager.auth(auth_data.username, auth_data.password)
+
+
+@api_router.post(
+    "/refresh_token/",
+    response_model=TokenData,
+)
+async def update_tokens(data: UpdateTokensSchema):
+    return await manager.update_tokens(data.refresh_token)
 
 
 @api_router.get(

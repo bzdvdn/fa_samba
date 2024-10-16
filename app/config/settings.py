@@ -2,9 +2,8 @@ import os
 
 from dotenv import load_dotenv
 
-PROJECT_NAME = "AD Samba API"
-PROJECT_DESCRIPTION = ""
-SERVER_HOST = "http://127.0.0.1:8000"
+PROJECT_NAME = "Samba-AD API"
+PROJECT_DESCRIPTION = "samba ad admin api"
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -31,3 +30,4 @@ SWAGGER_OAUTH_REDIRECT_URL = f"{BASE_PREFIX}docs/oauth2-redirect/"
 STATIC_URL = f"{BASE_PREFIX}static/"
 
 ACCESS_TOKEN_EXPIRE_SECONDS = int(os.getenv("ACCESS_TOKEN_EXPIRE_SECONDS", 300))
+REFRESH_TOKEN_EXPIRE_SECONDS = int(os.getenv("REFRESH_TOKEN_EXPIRE_SECONDS", 86400))

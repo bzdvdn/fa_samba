@@ -1,7 +1,8 @@
 from typing import Optional, List
+from contextlib import contextmanager
 
 import ldb
-from samba import dsdb
+from samba import dsdb  # type: ignore
 from samba.netcmd.gpo import get_gpo_info, attr_default, gpo_flags_string
 from samba.auth import system_session
 from samba.credentials import Credentials
@@ -36,9 +37,19 @@ class SambaClient(object):
         except Exception as e:
             raise HTTPException(status_code=401, detail="Invalid username or password")
 
-    def list_users(self) -> list:
+    @contextmanager
+    def transaction(self):
+        self._client.transaction_start()
         try:
-            self._client.transaction_start()
+            yield
+        except:
+            self._client.transaction_cancel()
+            raise
+        finally:
+            self._client.transaction_commit()
+
+    def list_users(self) -> list:
+        with self.transaction():
             search_dn = self._client.domain_dn()
             filter_expires = ""
             current_nttime = self._client.get_nttime()
@@ -77,11 +88,6 @@ class SambaClient(object):
                 }
                 users.append(obj)
                 # users.append("%s" % entry.get("samaccountname", idx=0))
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
         return users
 
@@ -92,7 +98,7 @@ class SambaClient(object):
         pwdLastSet: Optional[int],
         accountExpires: Optional[int],
     ) -> dict:
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.newuser(**user_data)
             username = user_data["username"]
@@ -101,25 +107,15 @@ class SambaClient(object):
                 self._client.setexpiry(search_filter, int(accountExpires))
             if pwdLastSet is not None:
                 self._client.force_password_change_at_next_login(search_filter)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
         return {}
 
     def delete_user(self, username: str):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.deleteuser(username=username)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def update_user_password(self, username: str, new_password: str):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             search_filter = f"(sAMAccountName={username})"
             self._client.setpassword(
@@ -128,11 +124,6 @@ class SambaClient(object):
                 force_change_at_next_login=False,
                 username=None,
             )
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def list_gpo(self) -> list:
         gpos = []
@@ -159,7 +150,7 @@ class SambaClient(object):
         name: Optional[str] = None,
         sd: Optional[str] = None,
     ):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.create_ou(
                 ou_dn=ou_dn,
@@ -167,65 +158,35 @@ class SambaClient(object):
                 name=name,
                 sd=sd,
             )
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def delete_organization_unit(self, ou_dn: str):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.delete(ou_dn)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def move_user_ou(self, from_ou: str, to_ou: str):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.rename(from_ou, to_ou)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def add_group(self, group_request: dict):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.newgroup(**group_request)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def delete_group(self, groupname: str):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.deletegroup(groupname)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def _add_or_remove_users_to_group(
         self, groupname: str, members: List[str], to_add: bool = True
     ):
-        try:
+        with self.transaction():
             self._client.transaction_start()
             self._client.add_remove_group_members(
                 groupname, members, add_members_operation=to_add
             )
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
 
     def add_users_to_group(self, groupname: str, members: List[str]):
         return self._add_or_remove_users_to_group(
@@ -241,8 +202,7 @@ class SambaClient(object):
         self,
     ):
         result = []
-        try:
-            self._client.transaction_start()
+        with self.transaction():
             search_dn = self._client.domain_dn()
             # filter_str = "(objectclass=group)"
             filter_str = "(objectclass=group)"
@@ -270,18 +230,11 @@ class SambaClient(object):
                     "info": entry.get("info", idx=0),
                 }
                 result.append(obj)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
-
         return result
 
     def list_users_by_group(self, groupname: str):
         result = []
-        self._client.transaction_start()
-        try:
+        with self.transaction():
             search_dn = self._client.domain_dn()
             group_str = f"(sAMAccountName={groupname})"
             group_lookup = self._client.search(
@@ -314,18 +267,12 @@ class SambaClient(object):
                     "ou_dn": str(dn_obj) if dn_obj else None,
                 }
                 result.append(obj)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
         return result
 
     def search_criteria(self, search: str, search_target: List[str]):
         search_dn = self._client.domain_dn()
         result = []
-        self._client.transaction_start()
-        try:
+        with self.transaction():
             lookup = self._client.search(
                 search_dn,
                 scope=ldb.SCOPE_SUBTREE,
@@ -335,9 +282,3 @@ class SambaClient(object):
             for entry in lookup:
                 row = {k: str(entry.get(k, idx=0)) for k in search_target}
                 result.append(row)
-        except:
-            self._client.transaction_cancel()
-            raise
-        else:
-            self._client.transaction_commit()
-        return result

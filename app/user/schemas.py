@@ -8,12 +8,13 @@ from app.config import settings
 
 class TokenData(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
     expires: int = settings.ACCESS_TOKEN_EXPIRE_SECONDS
     expires_in: int = 0
 
     @validator("expires_in")
-    def generate_expirest_in(cls, v):
+    def generate_expires_in(cls, v):
         return int(time() + settings.ACCESS_TOKEN_EXPIRE_SECONDS)
 
 
@@ -58,3 +59,7 @@ class UserList(BaseModel):
 class MoveUserOU(BaseModel):
     from_ou: str
     to_ou: str
+
+
+class UpdateTokensSchema(BaseModel):
+    refresh_token: str

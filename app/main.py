@@ -1,10 +1,8 @@
 from starlette.middleware.sessions import SessionMiddleware
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.exceptions import RequestValidationError
 from fastapi.staticfiles import StaticFiles
-from pydantic.error_wrappers import ValidationError
 
 
 from .config import settings

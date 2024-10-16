@@ -9,6 +9,7 @@ from jose import JWTError, jwt
 
 from app.config.settings import (
     ACCESS_TOKEN_EXPIRE_SECONDS,
+    REFRESH_TOKEN_EXPIRE_SECONDS,
     SECRET_KEY,
     SECRET_SALT,
 )
@@ -29,14 +30,18 @@ class AuthServiceManager:
     ALGORITHM = "HS256"
 
     async def auth(self, username: str, password: str) -> TokenData:
-        client = SambaClient(username, password)
+        _ = SambaClient(username, password)
         sub = json.dumps({"username": username, "password": password})
         return TokenData(
             access_token=self.generate_access_token(sub),
+            refresh_token=self.generate_refresh_token(sub),
         )
 
     def generate_access_token(self, sub: str) -> str:
         return self._craete_token(sub, ACCESS_TOKEN_EXPIRE_SECONDS)
+
+    def generate_refresh_token(self, sub: str) -> str:
+        return self._craete_token(sub, REFRESH_TOKEN_EXPIRE_SECONDS)
 
     def _craete_token(self, sub: str, expire_delta: int) -> str:
         token_sub = crypt.encrypt(sub, SECRET_KEY)
@@ -77,6 +82,17 @@ class AuthServiceManager:
     ) -> dict:
         user_data = await self._verify_token(credentials.credentials)
         return {"username": user_data["username"]}
+
+    async def verify_refresh_token(self, token) -> dict:
+        return await self._verify_token(token)
+
+    async def update_tokens(self, refresh_token: str) -> TokenData:
+        sub: dict = await self.verify_refresh_token(refresh_token)
+        sub_str = json.dumps(sub)
+        return TokenData(
+            access_token=self.generate_access_token(sub_str),
+            refresh_token=self.generate_refresh_token(sub_str),
+        )
 
     async def get_me(self, credentials: HTTPAuthorizationCredentials):
         me: dict = await self.verify_access_token(credentials)

@@ -17,7 +17,7 @@ api_router = APIRouter()
     "/add_ou/",
     status_code=200,
 )
-async def move_user_organization(
+async def add_organization_unit(
     add_org_unit: AddOrganizationUnit,
     current_user: dict = Depends(get_current_user),
 ):

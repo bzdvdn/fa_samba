@@ -79,7 +79,7 @@ async def update_user_password(
     "/move_user_ou/",
     status_code=200,
 )
-async def create_organization_unit(
+async def move_user_organization(
     move: MoveUserOU,
     current_user: dict = Depends(get_current_user),
 ):

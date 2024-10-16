@@ -99,3 +99,23 @@ class MoveUserOU(BaseModel):
 
 class UpdateTokensSchema(BaseModel):
     refresh_token: str
+
+
+class UserUpdate(BaseModel):
+    sn: Optional[str] = None
+    telephoneNumber: Optional[str] = None
+    cn: Optional[str] = None
+    displayName: Optional[str] = None
+    givenName: Optional[str] = None
+    mail: Optional[str] = None
+
+    def to_request(self) -> dict:
+        user_request = {
+            "sn": self.sn,
+            "telephoneNumber": self.telephoneNumber,
+            "cn": self.cn,
+            "displayName": self.displayName,
+            "givenName": self.givenName,
+            "mail": self.mail,
+        }
+        return user_request

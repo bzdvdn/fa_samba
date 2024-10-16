@@ -14,6 +14,10 @@ from fastapi import HTTPException
 from app.config.settings import SAMBA_HOST
 
 
+class SambaClientError(Exception):
+    pass
+
+
 class SambaClient(object):
     def __init__(self, username: str, password: str):
         self.username = username
@@ -107,7 +111,7 @@ class SambaClient(object):
         username = user_data["username"]
         db_user = self.get_user_by_username(username=username)
         if db_user:
-            raise ValueError(f"user with this `{username}` exists")
+            raise SambaClientError(f"user with this `{username}` exists")
         with self.transaction():
             self._client.newuser(**user_data)
             username = user_data["username"]
@@ -306,3 +310,52 @@ class SambaClient(object):
             for entry in lookup:
                 row = {k: str(entry.get(k, idx=0)) for k in search_target}
                 result.append(row)
+
+    def modify_user(
+        self,
+        username: str,
+        sn: Optional[str] = None,
+        telephoneNumber: Optional[str] = None,
+        cn: Optional[str] = None,
+        displayName: Optional[str] = None,
+        givenName: Optional[str] = None,
+        mail: Optional[str] = None,
+        userAccountControl: Optional[str] = None,
+    ) -> dict:
+        user_obj = self.get_user_by_username(username)
+        if not user_obj:
+            raise SambaClientError(f"user with this `{username}` exists")
+        ldbmessage = ldb.Message()
+        ldbmessage.dn = ldb.Dn(self._client, str(user_obj["dn"]))
+        if sn is not None:
+            ldbmessage["sn"] = ldb.MessageElement(str(sn), ldb.FLAG_MOD_REPLACE, "sn")
+        if telephoneNumber is not None:
+            ldbmessage["telephoneNumber"] = ldb.MessageElement(
+                str(telephoneNumber), ldb.FLAG_MOD_REPLACE, "telephoneNumber"
+            )
+        if cn is not None:
+            ldbmessage["cn"] = ldb.MessageElement(str(cn), ldb.FLAG_MOD_REPLACE, "cn")
+        if displayName is not None:
+            ldbmessage["displayName"] = ldb.MessageElement(
+                str(displayName), ldb.FLAG_MOD_REPLACE, "displayName"
+            )
+        if givenName is not None:
+            ldbmessage["givenName"] = ldb.MessageElement(
+                str(givenName), ldb.FLAG_MOD_REPLACE, "givenName"
+            )
+        if mail is not None:
+            ldbmessage["mail"] = ldb.MessageElement(
+                str(mail), ldb.FLAG_MOD_REPLACE, "mail"
+            )
+        if userAccountControl is not None:
+            ldbmessage["userAccountControl"] = ldb.MessageElement(
+                str(userAccountControl), ldb.FLAG_MOD_REPLACE, "userAccountControl"
+            )
+        with self.transaction():
+            self._client.modify(ldbmessage)
+        user_obj = self.get_user_by_username(username)
+        if not user_obj:
+            raise SambaClientError(
+                f"user with this `{username}` exists after update..."
+            )
+        return user_obj

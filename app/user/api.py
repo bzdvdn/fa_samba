@@ -1,5 +1,3 @@
-from typing import Optional
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
@@ -16,6 +14,7 @@ from .schemas import (
     MoveUserOU,
     UpdateTokensSchema,
     UserRow,
+    UserUpdate,
 )
 from .security import auth_scheme, get_current_user
 from .services import manager
@@ -110,3 +109,15 @@ async def move_user_organization(
 ):
     await manager.move_user_ou(current_user, move)
     return DEFAULT_SUCCESS_RESPONSE
+
+
+@api_router.post("/modify_user_data/")
+async def modify_user_data(
+    username: str,
+    user_update: UserUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    user_obj = await manager.update_user(
+        current_user=current_user, username=username, update_user=user_update
+    )
+    return user_obj

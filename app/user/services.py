@@ -22,6 +22,7 @@ from .schemas import (
     AddUser,
     UpdateUserPassword,
     MoveUserOU,
+    UserUpdate,
 )
 
 crypt = Crypt(SECRET_SALT)
@@ -171,6 +172,15 @@ class AuthServiceManager:
         client = SambaClient(**current_user)
         try:
             return client.get_user_by_username(username)
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def update_user(
+        self, current_user: dict, username: str, update_user: UserUpdate
+    ) -> dict:
+        client = SambaClient(**current_user)
+        try:
+            return client.modify_user(username, **update_user.to_request())
         except Exception as e:
             raise HTTPException(400, str(e))
 

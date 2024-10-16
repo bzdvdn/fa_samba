@@ -36,6 +36,7 @@ class AddUser(BaseModel):
     userAccountControl: Optional[int] = None
     pwdLastSet: Optional[int] = None
     accountExpires: Optional[int] = None
+    userou: Optional[str] = None
 
     def to_user_request(self) -> dict:
         user_request = {
@@ -45,9 +46,31 @@ class AddUser(BaseModel):
             "surname": self.sn,
             "mailaddress": self.mail,
             "telephonenumber": self.telephoneNumber,
+            "userou": self.userou,
         }
         return user_request
 
 
 class UserList(BaseModel):
     users: list
+
+
+class AddOrganizationUnit(BaseModel):
+    ou_dn: str
+    description: Optional[str] = None
+    name: Optional[str] = None
+    # sd: Optional[str] = None
+
+    def to_request(self) -> dict:
+        user_request = {
+            "ou_dn": self.ou_dn,
+            "description": self.description,
+            "name": self.name,
+            # "sd": self.sd,
+        }
+        return user_request
+
+
+class MoveUserOU(BaseModel):
+    from_ou: str
+    to_ou: str

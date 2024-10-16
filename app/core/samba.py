@@ -61,14 +61,22 @@ class SambaClient(object):
                 search_dn,
                 scope=ldb.SCOPE_SUBTREE,
                 expression=filter,
-                attrs=["samaccountname"],
+                attrs=["samaccountname", "telephonenumber", "mail", "dn"],
             )
 
             if len(lookup) == 0:
                 return []
             users = []
             for entry in lookup:
-                users.append("%s" % entry.get("samaccountname", idx=0))
+                dn_obj = entry.get("dn", idx=0)
+                obj = {
+                    "usermame": entry.get("samaccountname", idx=0),
+                    "telephonenumber": entry.get("telephonenumber", idx=0),
+                    "mail": entry.get("mail", idx=0),
+                    "ou_dn": str(dn_obj) if dn_obj else None,
+                }
+                users.append(obj)
+                # users.append("%s" % entry.get("samaccountname", idx=0))
         except:
             self._client.transaction_cancel()
             raise
@@ -143,3 +151,44 @@ class SambaClient(object):
             }
             gpos.append(gpo)
         return gpos
+
+    def create_organization_unit(
+        self,
+        ou_dn: str,
+        description: Optional[str] = None,
+        name: Optional[str] = None,
+        sd: Optional[str] = None,
+    ):
+        try:
+            self._client.transaction_start()
+            self._client.create_ou(
+                ou_dn=ou_dn,
+                description=description,
+                name=name,
+                sd=sd,
+            )
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+    def delete_organization_unit(self, ou_dn: str):
+        try:
+            self._client.transaction_start()
+            self._client.delete(ou_dn)
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
+
+    def move_user_ou(self, from_ou: str, to_ou: str):
+        try:
+            self._client.transaction_start()
+            self._client.rename(from_ou, to_ou)
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()

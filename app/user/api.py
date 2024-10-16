@@ -9,6 +9,8 @@ from .schemas import (
     AddUser,
     UpdateUserPassword,
     UserList,
+    AddOrganizationUnit,
+    MoveUserOU,
 )
 from .security import auth_scheme
 from .services import manager
@@ -69,3 +71,36 @@ async def update_user_password(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
 ):
     await manager.update_user_password(credentials, update_user_password)
+
+
+@api_router.post(
+    "/add_ou/",
+    status_code=200,
+)
+async def move_user_organization(
+    add_org_unit: AddOrganizationUnit,
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+):
+    await manager.create_organization_unit(credentials, add_org_unit)
+
+
+@api_router.post(
+    "/move_user_ou/",
+    status_code=200,
+)
+async def create_organization_unit(
+    move: MoveUserOU,
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+):
+    await manager.move_user_ou(credentials, move)
+
+
+@api_router.delete(
+    "/delete_organization/",
+    status_code=200,
+)
+async def delete_organization(
+    ou_dn: str,
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
+):
+    await manager.delete_organization(credentials, ou_dn)

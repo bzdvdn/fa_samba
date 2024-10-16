@@ -16,7 +16,13 @@ from app.config.settings import (
 from app.core.samba import SambaClient
 from app.utils.crypt import Crypt
 
-from .schemas import TokenData, AddUser, UpdateUserPassword
+from .schemas import (
+    TokenData,
+    AddUser,
+    UpdateUserPassword,
+    AddOrganizationUnit,
+    MoveUserOU,
+)
 
 crypt = Crypt(SECRET_SALT)
 
@@ -124,6 +130,42 @@ class AuthServiceManager:
                 update_user_password.username,
                 new_password=update_user_password.password,
             )
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def create_organization_unit(
+        self,
+        credentials: HTTPAuthorizationCredentials,
+        add_org_unit: AddOrganizationUnit,
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.create_organization_unit(**add_org_unit.to_request())
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def move_user_ou(
+        self,
+        credentials: HTTPAuthorizationCredentials,
+        move: MoveUserOU,
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.move_user_ou(move.from_ou, move.to_ou)
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def delete_organization(
+        self,
+        credentials: HTTPAuthorizationCredentials,
+        ou_dn: str,
+    ):
+        user_data = await self._verify_token(credentials.credentials)
+        client = SambaClient(**user_data)
+        try:
+            client.delete_organization_unit(ou_dn)
         except Exception as e:
             raise HTTPException(400, str(e))
 

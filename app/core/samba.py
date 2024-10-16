@@ -48,6 +48,18 @@ class SambaClient(object):
         finally:
             self._client.transaction_commit()
 
+    def _parse_entry(self, entry) -> dict:
+        obj = {}
+        for k in entry:
+            value = entry.get(k, idx=0)
+            if isinstance(value, bytes):
+                obj[k] = value.decode(errors="ignore")
+            elif value is None:
+                obj[k] = value
+            else:
+                obj[k] = str(value)
+        return obj
+
     def list_users(self) -> list:
         with self.transaction():
             search_dn = self._client.domain_dn()
@@ -72,20 +84,14 @@ class SambaClient(object):
                 search_dn,
                 scope=ldb.SCOPE_SUBTREE,
                 expression=filter_,
-                attrs=["samaccountname", "telephonenumber", "mail", "dn"],
+                attrs=["*"],
             )
 
             if len(lookup) == 0:
                 return []
             users = []
             for entry in lookup:
-                dn_obj = entry.get("dn", idx=0)
-                obj = {
-                    "usermame": entry.get("samaccountname", idx=0),
-                    "telephonenumber": entry.get("telephonenumber", idx=0),
-                    "mail": entry.get("mail", idx=0),
-                    "ou_dn": str(dn_obj) if dn_obj else None,
-                }
+                obj = self._parse_entry(entry)
                 users.append(obj)
                 # users.append("%s" % entry.get("samaccountname", idx=0))
 
@@ -98,15 +104,19 @@ class SambaClient(object):
         pwdLastSet: Optional[int],
         accountExpires: Optional[int],
     ) -> dict:
+        username = user_data["username"]
+        db_user = self.get_user_by_username(username=username)
+        if db_user:
+            raise ValueError(f"user with this `{username}` exists")
         with self.transaction():
-            self._client.transaction_start()
             self._client.newuser(**user_data)
             username = user_data["username"]
             search_filter = f"(sAMAccountName={username})"
-            if accountExpires is not None:
-                self._client.setexpiry(search_filter, int(accountExpires))
             if pwdLastSet is not None:
                 self._client.force_password_change_at_next_login(search_filter)
+        if accountExpires is not None:
+            self._client.setexpiry(search_filter, int(accountExpires))
+
         return {}
 
     def delete_user(self, username: str):
@@ -114,9 +124,23 @@ class SambaClient(object):
             self._client.transaction_start()
             self._client.deleteuser(username=username)
 
+    def get_user_by_username(self, username: str) -> Optional[dict]:
+        with self.transaction():
+            search_dn = self._client.domain_dn()
+            search_filter = f"(sAMAccountName={username})"
+            lookup = self._client.search(
+                search_dn,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=search_filter,
+                attrs=["*"],
+            )
+            if len(lookup) == 0:
+                return None
+            obj = self._parse_entry(lookup[0])
+            return obj
+
     def update_user_password(self, username: str, new_password: str):
         with self.transaction():
-            self._client.transaction_start()
             search_filter = f"(sAMAccountName={username})"
             self._client.setpassword(
                 search_filter,

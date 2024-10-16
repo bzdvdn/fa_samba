@@ -9,4 +9,4 @@ auth_scheme = HTTPBearer(bearerFormat="Bearer", description="Access Bearer Token
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(auth_scheme),
 ) -> dict:
-    return await manager._verify_token(credentials.credentials)
+    return await manager._verify_token(credentials.credentials, "access")

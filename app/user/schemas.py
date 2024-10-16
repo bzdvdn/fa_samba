@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from time import time
 
 from pydantic import BaseModel, validator
@@ -52,8 +52,44 @@ class AddUser(BaseModel):
         return user_request
 
 
+class UserRow(BaseModel):
+    dn: Optional[str]
+    objectClass: Optional[str]
+    cn: Optional[str]
+    sn: Optional[str]
+    telephoneNumber: Optional[str]
+    givenName: Optional[str]
+    instanceType: Optional[str]
+    whenCreated: Optional[str]
+    whenChanged: Optional[str]
+    displayName: Optional[str]
+    uSNCreated: Optional[str]
+    name: Optional[str]
+    objectGUID: Optional[bytes]
+    badPwdCount: Optional[str]
+    codePage: Optional[str]
+    countryCode: Optional[str]
+    badPasswordTime: Optional[str]
+    lastLogoff: Optional[str]
+    lastLogon: Optional[str]
+    primaryGroupID: Optional[str]
+    objectSid: Optional[str]
+    accountExpires: Optional[str]
+    logonCount: Optional[str]
+    sAMAccountName: Optional[str]
+    sAMAccountType: Optional[str]
+    userPrincipalName: Optional[str]
+    objectCategory: Optional[str]
+    mail: Optional[str]
+    pwdLastSet: Optional[str]
+    userAccountControl: Optional[str]
+    uSNChanged: Optional[str]
+    memberOf: Optional[str]
+    distinguishedName: Optional[str]
+
+
 class UserList(BaseModel):
-    users: list
+    users: List[UserRow]
 
 
 class MoveUserOU(BaseModel):

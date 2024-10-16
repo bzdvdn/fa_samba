@@ -1,3 +1,4 @@
+from typing import Optional
 import json
 from dateutil.parser import parse
 from datetime import datetime, timedelta
@@ -31,27 +32,31 @@ class AuthServiceManager:
 
     async def auth(self, username: str, password: str) -> TokenData:
         _ = SambaClient(username, password)
-        sub = json.dumps({"username": username, "password": password})
+        sub = {"username": username, "password": password}
         return TokenData(
             access_token=self.generate_access_token(sub),
             refresh_token=self.generate_refresh_token(sub),
         )
 
-    def generate_access_token(self, sub: str) -> str:
+    def generate_access_token(self, sub: dict) -> str:
         return self._craete_token(sub, ACCESS_TOKEN_EXPIRE_SECONDS)
 
-    def generate_refresh_token(self, sub: str) -> str:
-        return self._craete_token(sub, REFRESH_TOKEN_EXPIRE_SECONDS)
+    def generate_refresh_token(self, sub: dict) -> str:
+        return self._craete_token(sub, REFRESH_TOKEN_EXPIRE_SECONDS, "refresh")
 
-    def _craete_token(self, sub: str, expire_delta: int) -> str:
-        token_sub = crypt.encrypt(sub, SECRET_KEY)
+    def _craete_token(
+        self, sub: dict, expire_delta: int, token_type: str = "access"
+    ) -> str:
+        sub_obj = {**sub, "token_type": token_type}
+        sub_str = json.dumps(sub_obj)
+        token_sub = crypt.encrypt(sub_str, SECRET_KEY)
         data = {
             "sub": token_sub,
             "expire": str(datetime.now(UTC) + timedelta(seconds=expire_delta)),
         }
         return jwt.encode(data, SECRET_KEY, algorithm=self.ALGORITHM)
 
-    async def _verify_token(self, token: str) -> dict:
+    async def _verify_token(self, token: str, type_: str) -> dict:
         try:
             decoded = jwt.decode(token, SECRET_KEY, algorithms=[self.ALGORITHM])
             expire_time = parse(decoded["expire"])
@@ -63,6 +68,13 @@ class AuthServiceManager:
                 )
             token_sub: str = decoded["sub"]
             user_data = json.loads(crypt.decrypt(token_sub, SECRET_KEY))
+            token_type = user_data.pop("token_type")
+            if token_type != type_:
+                raise HTTPException(
+                    status_code=401,
+                    detail="invalid token.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
             return user_data
         except JWTError:
             raise HTTPException(
@@ -80,18 +92,17 @@ class AuthServiceManager:
     async def verify_access_token(
         self, credentials: HTTPAuthorizationCredentials
     ) -> dict:
-        user_data = await self._verify_token(credentials.credentials)
+        user_data = await self._verify_token(credentials.credentials, "access")
         return {"username": user_data["username"]}
 
     async def verify_refresh_token(self, token) -> dict:
-        return await self._verify_token(token)
+        return await self._verify_token(token, "refresh")
 
     async def update_tokens(self, refresh_token: str) -> TokenData:
         sub: dict = await self.verify_refresh_token(refresh_token)
-        sub_str = json.dumps(sub)
         return TokenData(
-            access_token=self.generate_access_token(sub_str),
-            refresh_token=self.generate_refresh_token(sub_str),
+            access_token=self.generate_access_token(sub),
+            refresh_token=self.generate_refresh_token(sub),
         )
 
     async def get_me(self, credentials: HTTPAuthorizationCredentials):
@@ -149,6 +160,17 @@ class AuthServiceManager:
         client = SambaClient(**current_user)
         try:
             client.move_user_ou(move.from_ou, move.to_ou)
+        except Exception as e:
+            raise HTTPException(400, str(e))
+
+    async def get_user_by_username(
+        self,
+        current_user: dict,
+        username: str,
+    ) -> Optional[dict]:
+        client = SambaClient(**current_user)
+        try:
+            return client.get_user_by_username(username)
         except Exception as e:
             raise HTTPException(400, str(e))
 

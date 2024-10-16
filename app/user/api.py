@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
 
 # from fastapi.exceptions import HTTPException
@@ -13,6 +15,7 @@ from .schemas import (
     UserList,
     MoveUserOU,
     UpdateTokensSchema,
+    UserRow,
 )
 from .security import auth_scheme, get_current_user
 from .services import manager
@@ -51,6 +54,19 @@ async def get_me(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme
 )
 async def list_users(current_user: dict = Depends(get_current_user)):
     return await manager.get_users(current_user)
+
+
+@api_router.get(
+    "/get/",
+    response_model=UserRow,
+)
+async def get_user_by_username(
+    username: str, current_user: dict = Depends(get_current_user)
+):
+    user = await manager.get_user_by_username(current_user, username)
+    if not user:
+        raise HTTPException(404, f"user with `{username}` does not exists.")
+    return user
 
 
 @api_router.post(

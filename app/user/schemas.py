@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional
 from time import time
 
 from pydantic import BaseModel, validator
@@ -55,47 +55,6 @@ class UserList(BaseModel):
     users: list
 
 
-class AddOrganizationUnit(BaseModel):
-    ou_dn: str
-    description: Optional[str] = None
-    name: Optional[str] = None
-    # sd: Optional[str] = None
-
-    def to_request(self) -> dict:
-        user_request = {
-            "ou_dn": self.ou_dn,
-            "description": self.description,
-            "name": self.name,
-            # "sd": self.sd,
-        }
-        return user_request
-
-
 class MoveUserOU(BaseModel):
     from_ou: str
     to_ou: str
-
-
-class AddGroup(BaseModel):
-    name: str
-    groupou: Optional[str] = None
-    grouptype: Optional[int] = None
-    description: Optional[str] = None
-    mailaddress: Optional[str] = None
-    notes: Optional[str] = None
-    # sd: Optional[str] = None
-
-    def to_request(self) -> dict:
-        return {
-            "groupname": self.name,
-            "groupou": self.groupou,
-            "grouptype": self.grouptype,
-            "description": self.description,
-            "mailaddress": self.mailaddress,
-            "notes": self.notes,
-        }
-
-
-class UserGroupManage(BaseModel):
-    groupname: str
-    members: List[str]

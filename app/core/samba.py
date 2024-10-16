@@ -279,7 +279,6 @@ class SambaClient(object):
         return result
 
     def list_users_by_group(self, groupname: str):
-
         result = []
         self._client.transaction_start()
         try:
@@ -315,11 +314,30 @@ class SambaClient(object):
                     "ou_dn": str(dn_obj) if dn_obj else None,
                 }
                 result.append(obj)
-
         except:
             self._client.transaction_cancel()
             raise
         else:
             self._client.transaction_commit()
+        return result
 
+    def search_criteria(self, search: str, search_target: List[str]):
+        search_dn = self._client.domain_dn()
+        result = []
+        self._client.transaction_start()
+        try:
+            lookup = self._client.search(
+                search_dn,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=search,
+                attrs=search_target,
+            )
+            for entry in lookup:
+                row = {k: str(entry.get(k, idx=0)) for k in search_target}
+                result.append(row)
+        except:
+            self._client.transaction_cancel()
+            raise
+        else:
+            self._client.transaction_commit()
         return result

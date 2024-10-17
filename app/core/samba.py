@@ -55,13 +55,18 @@ class SambaClient(object):
     def _parse_entry(self, entry) -> dict:
         obj = {}
         for k in entry:
-            value = entry.get(k, idx=0)
-            if isinstance(value, bytes):
+            if k in ("objectClass", "memberOf"):
+                value = [i for i in entry[k]]
+            else:
+                value = entry.get(k, idx=0)
+            if k == "dn":
+                obj[k] = str(value)
+            elif isinstance(value, bytes):
                 obj[k] = value.decode(errors="ignore")
             elif value is None:
                 obj[k] = value
             else:
-                obj[k] = str(value)
+                obj[k] = value
         return obj
 
     def list_users(self) -> list:
@@ -88,7 +93,7 @@ class SambaClient(object):
                 search_dn,
                 scope=ldb.SCOPE_SUBTREE,
                 expression=filter_,
-                attrs=["*"],
+                attrs=[],
             )
 
             if len(lookup) == 0:
@@ -100,6 +105,84 @@ class SambaClient(object):
                 # users.append("%s" % entry.get("samaccountname", idx=0))
 
         return users
+
+    def _new_user(
+        self,
+        username: str,
+        password: str,
+        userou: Optional[str] = None,
+        telephonenumber: Optional[str] = None,
+        description: Optional[str] = None,
+        givenname: Optional[str] = None,
+        surname: Optional[str] = None,
+        department: Optional[str] = None,
+        mailaddress: Optional[str] = None,
+        initials: Optional[str] = None,
+        force_password_change_at_next_login_req: bool = False,
+        setpassword: bool = False,
+        **kwargs,
+    ):
+        displayname = self._client.fullname_from_names(
+            given_name=givenname, initials=initials, surname=surname
+        )
+        cn = username
+        if userou:
+            user_dn = "CN=%s,%s,%s" % (cn, userou, self._client.domain_dn())
+        else:
+            user_dn = "CN=%s,%s" % (
+                cn,
+                self._client.get_wellknown_dn(
+                    self._client.get_default_basedn(), dsdb.DS_GUID_USERS_CONTAINER
+                ),
+            )
+
+        dnsdomain = (
+            ldb.Dn(self._client, self._client.domain_dn())
+            .canonical_str()
+            .replace("/", "")
+        )
+        user_principal_name = "%s@%s" % (username, dnsdomain)
+        # The new user record. Note the reliance on the SAMLDB module which
+        # fills in the default information
+        ldbmessage = {
+            "dn": user_dn,
+            "sAMAccountName": username,
+            "userPrincipalName": user_principal_name,
+            "objectClass": "user",
+        }
+        if surname is not None:
+            ldbmessage["sn"] = surname
+
+        if givenname is not None:
+            ldbmessage["givenName"] = givenname
+
+        if displayname != "":
+            ldbmessage["displayName"] = displayname
+            ldbmessage["name"] = displayname
+
+        if initials is not None:
+            ldbmessage["initials"] = "%s." % initials
+        if description is not None:
+            ldbmessage["description"] = description
+
+        if mailaddress is not None:
+            ldbmessage["mail"] = mailaddress
+        if telephonenumber is not None:
+            ldbmessage["telephoneNumber"] = telephonenumber
+        if department is not None:
+            ldbmessage["department"] = department
+
+        for k, v in kwargs.items():
+            ldbmessage[k] = str(v)
+
+        with self.transaction():
+            self._client.add(ldbmessage)
+            if setpassword:
+                self._client.setpassword(
+                    f"(distinguishedName={ldb.binary_encode(user_dn)})",
+                    password,
+                    force_password_change_at_next_login_req,
+                )
 
     def create_user(
         self,
@@ -113,7 +196,7 @@ class SambaClient(object):
         if db_user:
             raise SambaClientError(f"user with this `{username}` exists")
         with self.transaction():
-            self._client.newuser(**user_data)
+            self._new_user(**user_data)
             username = user_data["username"]
             search_filter = f"(sAMAccountName={username})"
             if pwdLastSet is not None:

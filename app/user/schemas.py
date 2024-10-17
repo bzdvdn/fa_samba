@@ -38,6 +38,9 @@ class AddUser(BaseModel):
     pwdLastSet: Optional[int] = None
     accountExpires: Optional[int] = None
     userou: Optional[str] = None
+    wWWHomePage: Optional[str] = None
+    department: Optional[str] = None
+    ipPhone: Optional[str] = None
 
     def to_user_request(self) -> dict:
         user_request = {
@@ -48,16 +51,21 @@ class AddUser(BaseModel):
             "mailaddress": self.mail,
             "telephonenumber": self.telephoneNumber,
             "userou": self.userou,
+            "wWWHomePage": self.wWWHomePage,
+            "ipPhone": self.ipPhone,
+            "department": self.department,
         }
         return user_request
 
 
 class UserRow(BaseModel):
     dn: Optional[str]
-    objectClass: Optional[str]
+    objectClass: Optional[list]
     cn: Optional[str]
     sn: Optional[str]
     telephoneNumber: Optional[str]
+    department: Optional[str]
+    ipPhone: Optional[str]
     givenName: Optional[str]
     instanceType: Optional[str]
     whenCreated: Optional[str]
@@ -69,6 +77,7 @@ class UserRow(BaseModel):
     badPwdCount: Optional[str]
     codePage: Optional[str]
     countryCode: Optional[str]
+    wWWHomePage: Optional[str]
     badPasswordTime: Optional[str]
     lastLogoff: Optional[str]
     lastLogon: Optional[str]
@@ -84,7 +93,7 @@ class UserRow(BaseModel):
     pwdLastSet: Optional[str]
     userAccountControl: Optional[str]
     uSNChanged: Optional[str]
-    memberOf: Optional[str]
+    memberOf: Optional[list]
     distinguishedName: Optional[str]
 
 
@@ -108,6 +117,10 @@ class UserUpdate(BaseModel):
     displayName: Optional[str] = None
     givenName: Optional[str] = None
     mail: Optional[str] = None
+    ipPhone: Optional[str] = None
+    department: Optional[str] = None
+    userAccountControl: Optional[str] = None
+    wWWHomePage: Optional[str] = None
 
     def to_request(self) -> dict:
         user_request = {
@@ -117,5 +130,8 @@ class UserUpdate(BaseModel):
             "displayName": self.displayName,
             "givenName": self.givenName,
             "mail": self.mail,
+            "userAccountControl": self.userAccountControl,
+            "ipPhone": self.ipPhone,
+            "wWWHomePage": self.wWWHomePage,
         }
         return user_request

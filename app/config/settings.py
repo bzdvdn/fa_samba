@@ -19,6 +19,8 @@ SECRET_SALT = os.getenv(
 if SECRET_SALT and len(SECRET_SALT) != 16:
     raise RuntimeError("SECRET_SALT must be 16 symbols")
 SAMBA_HOST = os.getenv("SAMBA_HOST")
+if not SAMBA_HOST:
+    raise RuntimeError("SAMBA_HOST cant be empty.")
 BASE_PREFIX = os.environ.get("URL_HOST_PATH_PREFIX", "/")
 if BASE_PREFIX and not BASE_PREFIX.endswith("/"):
     raise RuntimeError("URL_HOST_PATH_PREFIX must be endswith `/`, like `app/`")

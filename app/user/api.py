@@ -135,7 +135,7 @@ async def add_users_to_group(
     user_group_manage: UserGroupManage,
     current_user: dict = Depends(get_current_user),
 ):
-    user_member_of = manager.add_user_to_groups(current_user, user_group_manage)
+    user_member_of = await manager.add_user_to_groups(current_user, user_group_manage)
     return user_member_of
 
 
@@ -148,5 +148,7 @@ async def remove_groups_from_user(
     user_group_manage: UserGroupManage,
     current_user: dict = Depends(get_current_user),
 ):
-    user_member_of = manager.remove_user_from_groups(current_user, user_group_manage)
+    user_member_of = await manager.remove_user_from_groups(
+        current_user, user_group_manage
+    )
     return user_member_of

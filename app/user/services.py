@@ -200,8 +200,11 @@ class AuthServiceManager:
                 client.add_users_to_group(
                     groupname=group_name, members=[user_group_manage.username]
                 )
-            user = client.get_user_by_username(user_group_manage.username)
-            return UserMemeberOf(memberOf=user.get("memberOf") if user else [])
+            samba_message = client.get_user_by_username(user_group_manage.username)
+            user_row = UserRow.from_samba_message(samba_message)
+            return UserMemeberOf(
+                memberOf=[g for g in user_row.memberOf] if user_row.memberOf else []
+            )
         except Exception as e:
             raise HTTPException(400, str(e))
 
@@ -214,8 +217,11 @@ class AuthServiceManager:
                 client.remove_users_from_group(
                     groupname=group_name, members=[user_group_manage.username]
                 )
-            user = client.get_user_by_username(user_group_manage.username)
-            return UserMemeberOf(memberOf=user.get("memberOf") if user else [])
+            samba_message = client.get_user_by_username(user_group_manage.username)
+            user_row = UserRow.from_samba_message(samba_message)
+            return UserMemeberOf(
+                memberOf=[g for g in user_row.memberOf] if user_row.memberOf else []
+            )
         except Exception as e:
             raise HTTPException(400, str(e))
 

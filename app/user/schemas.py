@@ -58,7 +58,25 @@ class AddUser(BaseModel):
         return user_request
 
 
+class UserUpdate(BaseModel):
+    sn: Optional[str] = None
+    telephoneNumber: Optional[str] = None
+    cn: Optional[str] = None
+    displayName: Optional[str] = None
+    givenName: Optional[str] = None
+    mail: Optional[str] = None
+    ipPhone: Optional[str] = None
+    department: Optional[str] = None
+    userAccountControl: Optional[str] = None
+    wWWHomePage: Optional[str] = None
+
+    def to_request(self) -> dict:
+        user_request = self.dict(skip_defaults=True, exclude_none=True)
+        return user_request
+
+
 class UserRow(BaseModel):
+    username: str
     dn: Optional[str]
     objectClass: Optional[list]
     cn: Optional[str]
@@ -96,6 +114,25 @@ class UserRow(BaseModel):
     memberOf: Optional[list]
     distinguishedName: Optional[str]
 
+    @classmethod
+    def from_samba_message(cls, entry) -> "UserRow":
+        obj = {}
+        for k in entry:
+            if k in ("objectClass", "memberOf"):
+                value = [i for i in entry[k]]
+            else:
+                value = entry.get(k, idx=0)
+            if k == "dn":
+                obj[k] = str(value)
+            elif isinstance(value, bytes):
+                obj[k] = value.decode(errors="ignore")
+            elif value is None:
+                obj[k] = value
+            else:
+                obj[k] = value
+        obj["username"] = obj["sAMAccountName"]
+        return cls(**obj)
+
 
 class UserList(BaseModel):
     users: List[UserRow]
@@ -110,28 +147,10 @@ class UpdateTokensSchema(BaseModel):
     refresh_token: str
 
 
-class UserUpdate(BaseModel):
-    sn: Optional[str] = None
-    telephoneNumber: Optional[str] = None
-    cn: Optional[str] = None
-    displayName: Optional[str] = None
-    givenName: Optional[str] = None
-    mail: Optional[str] = None
-    ipPhone: Optional[str] = None
-    department: Optional[str] = None
-    userAccountControl: Optional[str] = None
-    wWWHomePage: Optional[str] = None
+class UserGroupManage(BaseModel):
+    username: str
+    groups: List[str]
 
-    def to_request(self) -> dict:
-        user_request = {
-            "sn": self.sn,
-            "telephoneNumber": self.telephoneNumber,
-            "cn": self.cn,
-            "displayName": self.displayName,
-            "givenName": self.givenName,
-            "mail": self.mail,
-            "userAccountControl": self.userAccountControl,
-            "ipPhone": self.ipPhone,
-            "wWWHomePage": self.wWWHomePage,
-        }
-        return user_request
+
+class UserMemeberOf(BaseModel):
+    memberOf: Optional[list]

@@ -23,6 +23,13 @@ class AddGroup(BaseModel):
         }
 
 
-class UserGroupManage(BaseModel):
+class GroupUsersManage(BaseModel):
     groupname: str
     members: List[str]
+
+
+class GroupMemeber(BaseModel):
+    usermame: str
+    telephoneNumber: Optional[str]
+    mail: Optional[str]
+    ou_dn: Optional[str]

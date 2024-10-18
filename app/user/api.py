@@ -15,6 +15,8 @@ from .schemas import (
     UpdateTokensSchema,
     UserRow,
     UserUpdate,
+    UserGroupManage,
+    UserMemeberOf,
 )
 from .security import auth_scheme, get_current_user
 from .services import manager
@@ -70,12 +72,13 @@ async def get_user_by_username(
 
 @api_router.post(
     "/create_user/",
+    response_model=UserRow,
 )
 async def create_user(
     add_user: AddUser, current_user: dict = Depends(get_current_user)
 ):
-    await manager.create_user(current_user, add_user=add_user)
-    return DEFAULT_SUCCESS_RESPONSE
+    user = await manager.create_user(current_user, add_user=add_user)
+    return user
 
 
 @api_router.delete(
@@ -121,3 +124,29 @@ async def modify_user_data(
         current_user=current_user, username=username, update_user=user_update
     )
     return user_obj
+
+
+@api_router.post(
+    "/add_user_to_groups/",
+    status_code=200,
+    response_model=UserMemeberOf,
+)
+async def add_users_to_group(
+    user_group_manage: UserGroupManage,
+    current_user: dict = Depends(get_current_user),
+):
+    user_member_of = manager.add_user_to_groups(current_user, user_group_manage)
+    return user_member_of
+
+
+@api_router.post(
+    "/remove_groups_from_user/",
+    status_code=200,
+    response_model=UserMemeberOf,
+)
+async def remove_groups_from_user(
+    user_group_manage: UserGroupManage,
+    current_user: dict = Depends(get_current_user),
+):
+    user_member_of = manager.remove_user_from_groups(current_user, user_group_manage)
+    return user_member_of

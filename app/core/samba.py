@@ -52,23 +52,6 @@ class SambaClient(object):
         finally:
             self._client.transaction_commit()
 
-    def _parse_entry(self, entry) -> dict:
-        obj = {}
-        for k in entry:
-            if k in ("objectClass", "memberOf"):
-                value = [i for i in entry[k]]
-            else:
-                value = entry.get(k, idx=0)
-            if k == "dn":
-                obj[k] = str(value)
-            elif isinstance(value, bytes):
-                obj[k] = value.decode(errors="ignore")
-            elif value is None:
-                obj[k] = value
-            else:
-                obj[k] = value
-        return obj
-
     def list_users(self) -> list:
         with self.transaction():
             search_dn = self._client.domain_dn()
@@ -98,11 +81,7 @@ class SambaClient(object):
 
             if len(lookup) == 0:
                 return []
-            users = []
-            for entry in lookup:
-                obj = self._parse_entry(entry)
-                users.append(obj)
-                # users.append("%s" % entry.get("samaccountname", idx=0))
+            users = [entry for entry in lookup]
 
         return users
 
@@ -190,7 +169,7 @@ class SambaClient(object):
         userAccountControl: Optional[int],
         pwdLastSet: Optional[int],
         accountExpires: Optional[int],
-    ) -> dict:
+    ):
         username = user_data["username"]
         db_user = self.get_user_by_username(username=username)
         if db_user:
@@ -204,14 +183,12 @@ class SambaClient(object):
         if accountExpires is not None:
             self._client.setexpiry(search_filter, int(accountExpires))
 
-        return {}
-
     def delete_user(self, username: str):
         with self.transaction():
             self._client.transaction_start()
             self._client.deleteuser(username=username)
 
-    def get_user_by_username(self, username: str) -> Optional[dict]:
+    def get_user_by_username(self, username: str) -> Optional[ldb.Message]:
         with self.transaction():
             search_dn = self._client.domain_dn()
             search_filter = f"(sAMAccountName={username})"
@@ -223,8 +200,8 @@ class SambaClient(object):
             )
             if len(lookup) == 0:
                 return None
-            obj = self._parse_entry(lookup[0])
-            return obj
+
+            return lookup[0]
 
     def update_user_password(self, username: str, new_password: str):
         with self.transaction():
@@ -373,14 +350,14 @@ class SambaClient(object):
                 dn_obj = entry.get("dn", idx=0)
                 obj = {
                     "usermame": entry.get("samaccountname", idx=0),
-                    "telephonenumber": entry.get("telephonenumber", idx=0),
+                    "telephoneNumber": entry.get("telephonenumber", idx=0),
                     "mail": entry.get("mail", idx=0),
                     "ou_dn": str(dn_obj) if dn_obj else None,
                 }
                 result.append(obj)
         return result
 
-    def search_criteria(self, search: str, search_target: List[str]):
+    def search_criteria(self, search: str, search_target: List[str]) -> list:
         search_dn = self._client.domain_dn()
         result = []
         with self.transaction():
@@ -393,6 +370,7 @@ class SambaClient(object):
             for entry in lookup:
                 row = {k: str(entry.get(k, idx=0)) for k in search_target}
                 result.append(row)
+        return result
 
     def modify_user(
         self,
@@ -404,6 +382,7 @@ class SambaClient(object):
         givenName: Optional[str] = None,
         mail: Optional[str] = None,
         userAccountControl: Optional[str] = None,
+        **kwargs,
     ) -> dict:
         user_obj = self.get_user_by_username(username)
         if not user_obj:
@@ -434,6 +413,10 @@ class SambaClient(object):
             ldbmessage["userAccountControl"] = ldb.MessageElement(
                 str(userAccountControl), ldb.FLAG_MOD_REPLACE, "userAccountControl"
             )
+
+        for k, v in kwargs.items():
+            ldbmessage[k] = ldb.MessageElement(str(v), ldb.FLAG_MOD_REPLACE, k)
+
         with self.transaction():
             self._client.modify(ldbmessage)
         user_obj = self.get_user_by_username(username)

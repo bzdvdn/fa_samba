@@ -4,7 +4,7 @@ from .schemas import Search
 
 
 class GPOService(object):
-    async def search(self, current_user: dict, search: Search):
+    async def search(self, current_user: dict, search: Search) -> list:
         client = SambaClient(**current_user)
         return client.search_criteria(
             search=search.search_criteria,

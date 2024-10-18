@@ -5,7 +5,7 @@ from app.core.constants import DEFAULT_SUCCESS_RESPONSE
 
 from .schemas import (
     AddGroup,
-    UserGroupManage,
+    GroupUsersManage,
 )
 from app.user.security import get_current_user
 from .services import manager
@@ -42,7 +42,7 @@ async def delete_group(
     status_code=200,
 )
 async def add_users_to_group(
-    user_group_manage: UserGroupManage,
+    user_group_manage: GroupUsersManage,
     current_user: dict = Depends(get_current_user),
 ):
     await manager.add_users_to_group(current_user, user_group_manage)
@@ -54,7 +54,7 @@ async def add_users_to_group(
     status_code=200,
 )
 async def remove_users_from_group(
-    user_group_manage: UserGroupManage,
+    user_group_manage: GroupUsersManage,
     current_user: dict = Depends(get_current_user),
 ):
     await manager.remove_users_from_group(current_user, user_group_manage)

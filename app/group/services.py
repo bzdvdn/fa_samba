@@ -1,17 +1,11 @@
 from fastapi import HTTPException
 
-from app.config.settings import (
-    SECRET_SALT,
-)
 from app.core.samba import SambaClient
-from app.utils.crypt import Crypt
 
 from .schemas import (
     AddGroup,
-    UserGroupManage,
+    GroupUsersManage,
 )
-
-crypt = Crypt(SECRET_SALT)
 
 
 class GroupService(object):
@@ -32,7 +26,7 @@ class GroupService(object):
     async def add_users_to_group(
         self,
         current_user: dict,
-        user_group_manage: UserGroupManage,
+        user_group_manage: GroupUsersManage,
     ):
         client = SambaClient(**current_user)
         try:
@@ -45,7 +39,7 @@ class GroupService(object):
     async def remove_users_from_group(
         self,
         current_user: dict,
-        user_group_manage: UserGroupManage,
+        user_group_manage: GroupUsersManage,
     ):
         client = SambaClient(**current_user)
         try:

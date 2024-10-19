@@ -13,7 +13,7 @@ from .schemas import (
     UserList,
     MoveUserOU,
     UpdateTokensSchema,
-    UserRow,
+    UserDetail,
     UserUpdate,
     UserGroupManage,
     UserMemeberOf,
@@ -59,7 +59,7 @@ async def list_users(current_user: dict = Depends(get_current_user)):
 
 @api_router.get(
     "/get/",
-    response_model=UserRow,
+    response_model=UserDetail,
 )
 async def get_user_by_username(
     username: str, current_user: dict = Depends(get_current_user)
@@ -72,7 +72,7 @@ async def get_user_by_username(
 
 @api_router.post(
     "/create_user/",
-    response_model=UserRow,
+    response_model=UserDetail,
 )
 async def create_user(
     add_user: AddUser, current_user: dict = Depends(get_current_user)

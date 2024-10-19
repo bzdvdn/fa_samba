@@ -23,7 +23,7 @@ from .schemas import (
     UpdateUserPassword,
     MoveUserOU,
     UserUpdate,
-    UserRow,
+    UserDetail,
     UserGroupManage,
     UserMemeberOf,
 )
@@ -116,13 +116,13 @@ class AuthServiceManager:
     async def get_users(self, current_user: dict):
         client = SambaClient(**current_user)
         samba_messages = client.list_users()
-        return {"users": [UserRow.from_samba_message(sm) for sm in samba_messages]}
+        return {"users": [UserDetail.from_samba_message(sm) for sm in samba_messages]}
 
     async def create_user(
         self,
         current_user: dict,
         add_user: AddUser,
-    ) -> UserRow:
+    ) -> UserDetail:
         client = SambaClient(**current_user)
         user_data = add_user.to_user_request()
         try:
@@ -133,7 +133,7 @@ class AuthServiceManager:
                 accountExpires=add_user.accountExpires,
             )
             samba_message = client.get_user_by_username(user_data["username"])
-            return UserRow.from_samba_message(samba_message)
+            return UserDetail.from_samba_message(samba_message)
         except Exception as e:
             raise HTTPException(400, str(e))
 
@@ -173,21 +173,21 @@ class AuthServiceManager:
         self,
         current_user: dict,
         username: str,
-    ) -> Optional[UserRow]:
+    ) -> Optional[UserDetail]:
         client = SambaClient(**current_user)
         try:
             samba_entry = client.get_user_by_username(username)
-            return UserRow.from_samba_message(samba_entry)
+            return UserDetail.from_samba_message(samba_entry)
         except Exception as e:
             raise HTTPException(400, str(e))
 
     async def update_user(
         self, current_user: dict, username: str, update_user: UserUpdate
-    ) -> UserRow:
+    ) -> UserDetail:
         client = SambaClient(**current_user)
         try:
             samba_message = client.modify_user(username, **update_user.to_request())
-            return UserRow.from_samba_message(samba_message)
+            return UserDetail.from_samba_message(samba_message)
         except Exception as e:
             raise HTTPException(400, str(e))
 
@@ -201,7 +201,7 @@ class AuthServiceManager:
                     groupname=group_name, members=[user_group_manage.username]
                 )
             samba_message = client.get_user_by_username(user_group_manage.username)
-            user_row = UserRow.from_samba_message(samba_message)
+            user_row = UserDetail.from_samba_message(samba_message)
             return UserMemeberOf(
                 memberOf=[g for g in user_row.memberOf] if user_row.memberOf else []
             )
@@ -218,7 +218,7 @@ class AuthServiceManager:
                     groupname=group_name, members=[user_group_manage.username]
                 )
             samba_message = client.get_user_by_username(user_group_manage.username)
-            user_row = UserRow.from_samba_message(samba_message)
+            user_row = UserDetail.from_samba_message(samba_message)
             return UserMemeberOf(
                 memberOf=[g for g in user_row.memberOf] if user_row.memberOf else []
             )

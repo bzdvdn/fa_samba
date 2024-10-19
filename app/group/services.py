@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import HTTPException
 
 from app.core.samba import SambaClient
@@ -5,6 +7,7 @@ from app.core.samba import SambaClient
 from .schemas import (
     AddGroup,
     GroupUsersManage,
+    GroupDetail,
 )
 
 
@@ -56,7 +59,7 @@ class GroupService(object):
         client = SambaClient(**current_user)
         try:
             result = client.list_groups()
-            return result
+            return [GroupDetail.from_samba_message(row) for row in result]
         except Exception as e:
             raise HTTPException(400, str(e))
 
@@ -67,6 +70,19 @@ class GroupService(object):
             return result
         except Exception as e:
             raise HTTPException(400, str(e))
+
+    async def get_group_by_name(
+        self, current_user: dict, groupname: str
+    ) -> Optional[GroupDetail]:
+        client = SambaClient(**current_user)
+        try:
+            group = client.get_group_by_name(name=groupname)
+            if group:
+                return GroupDetail.from_samba_message(group)
+            return None
+        except Exception as e:
+            raise
+            # raise HTTPException(400, str(e))
 
 
 manager = GroupService()

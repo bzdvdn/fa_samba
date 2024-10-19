@@ -75,7 +75,7 @@ class UserUpdate(BaseModel):
         return user_request
 
 
-class UserRow(BaseModel):
+class UserDetail(BaseModel):
     username: str
     dn: Optional[str]
     objectClass: Optional[list]
@@ -115,7 +115,7 @@ class UserRow(BaseModel):
     distinguishedName: Optional[str]
 
     @classmethod
-    def from_samba_message(cls, entry) -> "UserRow":
+    def from_samba_message(cls, entry) -> "UserDetail":
         obj = {}
         for k in entry:
             if k in ("objectClass", "memberOf"):
@@ -135,7 +135,7 @@ class UserRow(BaseModel):
 
 
 class UserList(BaseModel):
-    users: List[UserRow]
+    users: List[UserDetail]
 
 
 class MoveUserOU(BaseModel):

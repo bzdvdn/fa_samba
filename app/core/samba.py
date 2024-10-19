@@ -203,6 +203,20 @@ class SambaClient(object):
 
             return lookup[0]
 
+    def get_group_by_name(self, name: str) -> Optional[ldb.Message]:
+        with self.transaction():
+            search_dn = self._client.domain_dn()
+            search_filter = f"(&(objectclass=group)(sAMAccountName={name}))"
+            lookup = self._client.search(
+                search_dn,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=search_filter,
+                attrs=["*"],
+            )
+            if len(lookup) == 0:
+                return None
+            return lookup[0]
+
     def update_user_password(self, username: str, new_password: str):
         with self.transaction():
             search_filter = f"(sAMAccountName={username})"
@@ -271,7 +285,6 @@ class SambaClient(object):
         self, groupname: str, members: List[str], to_add: bool = True
     ):
         with self.transaction():
-            self._client.transaction_start()
             self._client.add_remove_group_members(
                 groupname, members, add_members_operation=to_add
             )
@@ -299,7 +312,7 @@ class SambaClient(object):
                 scope=ldb.SCOPE_SUBTREE,
                 expression=filter_str,
                 attrs=[
-                    "samaccountname",
+                    "sAMAccountName",
                     "groupType",
                     "description",
                     "mail",
@@ -311,11 +324,12 @@ class SambaClient(object):
 
             for entry in lookup:
                 obj = {
-                    "sAMAccountName": entry.get("samaccountname", idx=0),
+                    "sAMAccountName": entry.get("sAMAccountName", idx=0),
                     "groupType": entry.get("groupType", idx=0),
                     "description": entry.get("description", idx=0),
                     "mail": entry.get("mail", idx=0),
                     "info": entry.get("info", idx=0),
+                    "dn": entry.get("dn", idx=0),
                 }
                 result.append(obj)
         return result

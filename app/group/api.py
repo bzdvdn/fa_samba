@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException
 
 # from fastapi.exceptions import HTTPException
 from app.core.constants import DEFAULT_SUCCESS_RESPONSE
@@ -6,6 +8,7 @@ from app.core.constants import DEFAULT_SUCCESS_RESPONSE
 from .schemas import (
     AddGroup,
     GroupUsersManage,
+    GroupDetail,
 )
 from app.user.security import get_current_user
 from .services import manager
@@ -61,14 +64,22 @@ async def remove_users_from_group(
     return DEFAULT_SUCCESS_RESPONSE
 
 
-@api_router.get(
-    "/groups/",
-    status_code=200,
-)
+@api_router.get("/list/", status_code=200, response_model=List[GroupDetail])
 async def list_groups(
     current_user: dict = Depends(get_current_user),
 ):
     return await manager.list_groups(current_user)
+
+
+@api_router.get("/get/", status_code=200, response_model=GroupDetail)
+async def get_group_by_name(
+    name: str,
+    current_user: dict = Depends(get_current_user),
+):
+    group = await manager.get_group_by_name(current_user, name)
+    if group:
+        return group
+    raise HTTPException(404, f"group with name `{name}` does not exists.")
 
 
 @api_router.get(

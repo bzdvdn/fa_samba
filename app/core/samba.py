@@ -90,19 +90,19 @@ class SambaClient(object):
         username: str,
         password: str,
         userou: Optional[str] = None,
-        telephonenumber: Optional[str] = None,
+        telephoneNumber: Optional[str] = None,
         description: Optional[str] = None,
-        givenname: Optional[str] = None,
-        surname: Optional[str] = None,
+        givenName: Optional[str] = None,
+        sn: Optional[str] = None,
         department: Optional[str] = None,
-        mailaddress: Optional[str] = None,
+        mail: Optional[str] = None,
         initials: Optional[str] = None,
         force_password_change_at_next_login_req: bool = False,
         setpassword: bool = False,
         **kwargs,
     ):
         displayname = self._client.fullname_from_names(
-            given_name=givenname, initials=initials, surname=surname
+            given_name=givenName, initials=initials, surname=sn
         )
         cn = username
         if userou:
@@ -129,11 +129,11 @@ class SambaClient(object):
             "userPrincipalName": user_principal_name,
             "objectClass": "user",
         }
-        if surname is not None:
-            ldbmessage["sn"] = surname
+        if sn is not None:
+            ldbmessage["sn"] = sn
 
-        if givenname is not None:
-            ldbmessage["givenName"] = givenname
+        if givenName is not None:
+            ldbmessage["givenName"] = givenName
 
         if displayname != "":
             ldbmessage["displayName"] = displayname
@@ -144,15 +144,16 @@ class SambaClient(object):
         if description is not None:
             ldbmessage["description"] = description
 
-        if mailaddress is not None:
-            ldbmessage["mail"] = mailaddress
-        if telephonenumber is not None:
-            ldbmessage["telephoneNumber"] = telephonenumber
+        if mail is not None:
+            ldbmessage["mail"] = mail
+        if telephoneNumber is not None:
+            ldbmessage["telephoneNumber"] = telephoneNumber
         if department is not None:
             ldbmessage["department"] = department
 
         for k, v in kwargs.items():
-            ldbmessage[k] = str(v)
+            if v is not None:
+                ldbmessage[k] = v
 
         with self.transaction():
             self._client.add(ldbmessage)
@@ -200,7 +201,6 @@ class SambaClient(object):
             )
             if len(lookup) == 0:
                 return None
-
             return lookup[0]
 
     def get_group_by_name(self, name: str) -> Optional[ldb.Message]:
@@ -429,7 +429,8 @@ class SambaClient(object):
             )
 
         for k, v in kwargs.items():
-            ldbmessage[k] = ldb.MessageElement(str(v), ldb.FLAG_MOD_REPLACE, k)
+            if v is not None:
+                ldbmessage[k] = ldb.MessageElement(v, ldb.FLAG_MOD_REPLACE, k)
 
         with self.transaction():
             self._client.modify(ldbmessage)

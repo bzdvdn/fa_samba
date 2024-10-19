@@ -27,38 +27,7 @@ class UpdateUserPassword(AuthUser):
     pass
 
 
-class AddUser(BaseModel):
-    username: str
-    password: str
-    givenName: Optional[str] = None
-    sn: Optional[str] = None
-    mail: Optional[str] = None
-    telephoneNumber: Optional[str] = None
-    userAccountControl: Optional[int] = None
-    pwdLastSet: Optional[int] = None
-    accountExpires: Optional[int] = None
-    userou: Optional[str] = None
-    wWWHomePage: Optional[str] = None
-    department: Optional[str] = None
-    ipPhone: Optional[str] = None
-
-    def to_user_request(self) -> dict:
-        user_request = {
-            "username": self.username,
-            "password": self.password,
-            "givenname": self.givenName,
-            "surname": self.sn,
-            "mailaddress": self.mail,
-            "telephonenumber": self.telephoneNumber,
-            "userou": self.userou,
-            "wWWHomePage": self.wWWHomePage,
-            "ipPhone": self.ipPhone,
-            "department": self.department,
-        }
-        return user_request
-
-
-class UserUpdate(BaseModel):
+class BaseUser(BaseModel):
     sn: Optional[str] = None
     telephoneNumber: Optional[str] = None
     cn: Optional[str] = None
@@ -69,33 +38,58 @@ class UserUpdate(BaseModel):
     department: Optional[str] = None
     userAccountControl: Optional[str] = None
     wWWHomePage: Optional[str] = None
+    company: Optional[str] = None
+    homePhone: Optional[str] = None
+    l: Optional[str] = None
+    mobile: Optional[str] = None
+    st: Optional[str] = None
+    streetAddress: Optional[str] = None
+    title: Optional[str] = None
+    postOfficeBox: Optional[list] = None
 
+
+class AddUser(BaseUser):
+    username: str
+    password: str
+    userou: Optional[str] = None
+    pwdLastSet: Optional[int] = None
+    accountExpires: Optional[int] = None
+
+    def to_user_request(self) -> dict:
+        user_request = {
+            "username": self.username,
+            "password": self.password,
+            "userou": self.userou,
+            "pwdLastSet": self.pwdLastSet,
+            "accountExpires": self.accountExpires,
+        }
+        # for another fields
+        all_fields = self.__fields__
+        for field_name in all_fields:
+            if field_name not in user_request:
+                user_request[field_name] = getattr(self, field_name)
+        return user_request
+
+
+class UserUpdate(BaseUser):
     def to_request(self) -> dict:
         user_request = self.dict(skip_defaults=True, exclude_none=True)
         return user_request
 
 
-class UserDetail(BaseModel):
+class UserDetail(BaseUser):
     username: str
     dn: Optional[str]
     objectClass: Optional[list]
-    cn: Optional[str]
-    sn: Optional[str]
-    telephoneNumber: Optional[str]
-    department: Optional[str]
-    ipPhone: Optional[str]
-    givenName: Optional[str]
     instanceType: Optional[str]
     whenCreated: Optional[str]
     whenChanged: Optional[str]
-    displayName: Optional[str]
     uSNCreated: Optional[str]
     name: Optional[str]
     objectGUID: Optional[bytes]
     badPwdCount: Optional[str]
     codePage: Optional[str]
     countryCode: Optional[str]
-    wWWHomePage: Optional[str]
     badPasswordTime: Optional[str]
     lastLogoff: Optional[str]
     lastLogon: Optional[str]
@@ -107,9 +101,7 @@ class UserDetail(BaseModel):
     sAMAccountType: Optional[str]
     userPrincipalName: Optional[str]
     objectCategory: Optional[str]
-    mail: Optional[str]
     pwdLastSet: Optional[str]
-    userAccountControl: Optional[str]
     uSNChanged: Optional[str]
     memberOf: Optional[list]
     distinguishedName: Optional[str]
@@ -118,7 +110,7 @@ class UserDetail(BaseModel):
     def from_samba_message(cls, entry) -> "UserDetail":
         obj = {}
         for k in entry:
-            if k in ("objectClass", "memberOf"):
+            if k in ("objectClass", "memberOf", "postOfficeBox"):
                 value = [i for i in entry[k]]
             else:
                 value = entry.get(k, idx=0)

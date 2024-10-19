@@ -128,13 +128,18 @@ class AuthServiceManager:
         try:
             client.create_user(
                 user_data=user_data,
-                userAccountControl=add_user.userAccountControl,
-                pwdLastSet=add_user.pwdLastSet,
+                userAccountControl=(
+                    int(add_user.userAccountControl)
+                    if add_user.userAccountControl
+                    else None
+                ),
+                pwdLastSet=int(add_user.pwdLastSet) if add_user.pwdLastSet else None,
                 accountExpires=add_user.accountExpires,
             )
             samba_message = client.get_user_by_username(user_data["username"])
             return UserDetail.from_samba_message(samba_message)
         except Exception as e:
+            # raise
             raise HTTPException(400, str(e))
 
     async def delete_user(self, current_user: dict, username: str):

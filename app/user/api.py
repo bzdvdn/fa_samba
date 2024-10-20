@@ -44,6 +44,7 @@ async def update_tokens(data: UpdateTokensSchema):
 
 @api_router.get(
     "/me/",
+    response_model=UserDetail,
 )
 async def get_me(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     return await manager.get_me(credentials)

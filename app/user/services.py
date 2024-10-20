@@ -109,9 +109,12 @@ class AuthServiceManager:
             refresh_token=self.generate_refresh_token(sub),
         )
 
-    async def get_me(self, credentials: HTTPAuthorizationCredentials):
-        me: dict = await self.verify_access_token(credentials)
-        return me
+    async def get_me(self, credentials: HTTPAuthorizationCredentials) -> UserDetail:
+        current_user: dict = await self._verify_token(credentials.credentials, "access")
+        user = await self.get_user_by_username(current_user, username=current_user['username'])
+        if not user:
+            raise HTTPException(403, "invalid user token.")
+        return user
 
     async def get_users(self, current_user: dict):
         client = SambaClient(**current_user)

@@ -21,12 +21,18 @@ class OrgService(object):
         self,
         current_user: dict,
         add_org_unit: AddOrganizationUnit,
-    ):
+    ) -> OrgDetail:
         client = SambaClient(**current_user)
         try:
             client.create_organization_unit(**add_org_unit.to_request())
+            if add_org_unit.name:
+                ou_name = add_org_unit.name
+            else:
+                ou_name = add_org_unit.ou_dn.split(",")[0].lower().replace("ou=", "")
         except Exception as e:
             raise HTTPException(400, str(e))
+        entry = client.get_ou(ou_name)
+        return OrgDetail.from_samba_message(entry)
 
     async def list_ou(self, current_user: dict) -> list:
         client = SambaClient(**current_user)

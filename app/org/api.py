@@ -16,13 +16,14 @@ api_router = APIRouter()
 @api_router.post(
     "/add/",
     status_code=200,
+    response_model=OrgDetail,
 )
 async def add_org_unit(
     add_org_unit: AddOrganizationUnit,
     current_user: dict = Depends(get_current_user),
 ):
-    await manager.create_organization_unit(current_user, add_org_unit)
-    return DEFAULT_SUCCESS_RESPONSE
+    org = await manager.create_organization_unit(current_user, add_org_unit)
+    return org
 
 
 @api_router.delete(

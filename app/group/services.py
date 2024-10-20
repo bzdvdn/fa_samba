@@ -81,8 +81,7 @@ class GroupService(object):
                 return GroupDetail.from_samba_message(group)
             return None
         except Exception as e:
-            raise
-            # raise HTTPException(400, str(e))
+            raise HTTPException(400, str(e))
 
 
 manager = GroupService()

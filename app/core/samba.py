@@ -43,13 +43,13 @@ class SambaClient(object):
 
     @contextmanager
     def transaction(self):
-        self._client.transaction_start()
         try:
+            self._client.transaction_start()
             yield
         except:
             self._client.transaction_cancel()
             raise
-        finally:
+        else:
             self._client.transaction_commit()
 
     def list_users(self) -> list:
@@ -155,14 +155,14 @@ class SambaClient(object):
             if v is not None:
                 ldbmessage[k] = v
 
-        with self.transaction():
-            self._client.add(ldbmessage)
-            if setpassword:
-                self._client.setpassword(
-                    f"(distinguishedName={ldb.binary_encode(user_dn)})",
-                    password,
-                    force_password_change_at_next_login_req,
-                )
+        # with self.transaction():
+        self._client.add(ldbmessage)
+        if setpassword:
+            self._client.setpassword(
+                f"(distinguishedName={ldb.binary_encode(user_dn)})",
+                password,
+                force_password_change_at_next_login_req,
+            )
 
     def create_user(
         self,
@@ -186,7 +186,6 @@ class SambaClient(object):
 
     def delete_user(self, username: str):
         with self.transaction():
-            self._client.transaction_start()
             self._client.deleteuser(username=username)
 
     def get_user_by_username(self, username: str) -> Optional[ldb.Message]:
@@ -253,7 +252,6 @@ class SambaClient(object):
         sd: Optional[str] = None,
     ):
         with self.transaction():
-            self._client.transaction_start()
             self._client.create_ou(
                 ou_dn=ou_dn,
                 description=description,
@@ -263,22 +261,18 @@ class SambaClient(object):
 
     def delete_organization_unit(self, ou_dn: str):
         with self.transaction():
-            self._client.transaction_start()
             self._client.delete(ou_dn)
 
     def move_user_ou(self, from_ou: str, to_ou: str):
         with self.transaction():
-            self._client.transaction_start()
             self._client.rename(from_ou, to_ou)
 
     def add_group(self, group_request: dict):
         with self.transaction():
-            self._client.transaction_start()
             self._client.newgroup(**group_request)
 
     def delete_group(self, groupname: str):
         with self.transaction():
-            self._client.transaction_start()
             self._client.deletegroup(groupname)
 
     def _add_or_remove_users_to_group(
@@ -440,3 +434,26 @@ class SambaClient(object):
                 f"user with this `{username}` exists after update..."
             )
         return user_obj
+
+    def search_by_ou(self, ou: str, object_classes: list, attrs: Optional[list] = None):
+        object_classese_query = "".join(f"(objectclass={oc})" for oc in object_classes)
+        if len(object_classes) == 1:
+            search_filter = f"{object_classese_query}"
+        else:
+            search_filter = f"(|{object_classese_query})"
+        result = []
+        default_attrs = ["objectClass", "name", "dn"]
+        if attrs:
+            query_attrs = list(set(default_attrs + attrs))
+        else:
+            query_attrs = default_attrs
+        with self.transaction():
+            lookup = self._client.search(
+                ou,
+                scope=ldb.SCOPE_SUBTREE,
+                expression=search_filter,
+                attrs=query_attrs,
+            )
+            for entry in lookup:
+                result.append(entry)
+        return result

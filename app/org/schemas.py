@@ -1,6 +1,6 @@
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AddOrganizationUnit(BaseModel):
@@ -17,3 +17,18 @@ class AddOrganizationUnit(BaseModel):
             # "sd": self.sd,
         }
         return user_request
+
+
+class SearchByOU(BaseModel):
+    ou: str
+    object_classes: List[str] = Field(min_items=1)
+    attrs: Optional[list] = None
+
+
+class SearchOURow(BaseModel):
+    dn: str
+    name: str
+    objectClass: List[str]
+    objectType: str
+    description: Optional[str] = None
+    extra_attrs: Optional[Dict[str, Any]] = None

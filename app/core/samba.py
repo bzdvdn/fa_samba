@@ -457,3 +457,28 @@ class SambaClient(object):
             for entry in lookup:
                 result.append(entry)
         return result
+
+    def list_ou(self) -> list:
+        result = []
+        with self.transaction():
+            search_dn = self._client.domain_dn()
+            filter_str = "(objectclass=organizationalUnit)"
+            lookup = self._client.search(
+                search_dn, scope=ldb.SCOPE_SUBTREE, expression=filter_str, attrs=[]
+            )
+            if len(lookup) == 0:
+                return []
+            return [entry for entry in lookup]
+
+        return result
+
+    def get_ou(self, name) -> Optional[dict]:
+        with self.transaction():
+            search_dn = self._client.domain_dn()
+            filter_str = f"(&(objectclass=organizationalUnit)(name={name}))"
+            lookup = self._client.search(
+                search_dn, scope=ldb.SCOPE_SUBTREE, expression=filter_str, attrs=[]
+            )
+            if len(lookup) == 0:
+                return None
+            return lookup[0]

@@ -17,3 +17,25 @@ class AddOrganizationUnit(BaseModel):
             # "sd": self.sd,
         }
         return user_request
+
+
+class OrgDetail(BaseModel):
+    dn: str
+    ou: str
+    name: str
+    distinguishedName: str
+    objectCategory: list
+    objectClass: list
+    whenCreated: str
+
+    @classmethod
+    def from_samba_message(cls, entry) -> "OrgDetail":
+        return cls(
+            dn=str(entry["dn"]),
+            ou=str(entry["ou"]),
+            name=str(entry["name"]),
+            distinguishedName=str(entry["distinguishedName"]),
+            whenCreated=str(entry["whenCreated"]),
+            objectCategory=[o for o in entry.get("objectCategory", [])],
+            objectClass=[o for o in entry.get("objectClass", [])],
+        )

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from app.user.security import get_current_user
 
-from .schemas import Search, SearchDNRow, SearchByOU
+from .schemas import Search, SearchDNRow, SearchByDN
 from .services import manager
 
 
@@ -24,13 +24,13 @@ async def search(search: Search, current_user: dict = Depends(get_current_user))
     response_model=List[SearchDNRow],
 )
 async def search_by_dn(
-    search_by_ou: SearchByOU,
+    search_by_dn: SearchByDN,
     current_user: dict = Depends(get_current_user),
 ):
     res = await manager.search_by_dn(
         current_user,
-        search_by_ou.ou,
-        search_by_ou.object_classes,
-        attrs=search_by_ou.attrs,
+        search_by_dn.dn,
+        search_by_dn.object_classes,
+        attrs=search_by_dn.attrs,
     )
     return res

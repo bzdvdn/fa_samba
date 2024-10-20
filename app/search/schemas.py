@@ -8,8 +8,8 @@ class Search(BaseModel):
     search_target: List[str]
 
 
-class SearchByOU(BaseModel):
-    ou: str
+class SearchByDN(BaseModel):
+    dn: str
     object_classes: List[str] = Field(min_items=1)
     attrs: Optional[list] = None
 

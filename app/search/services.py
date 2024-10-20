@@ -16,14 +16,14 @@ class GPOService(object):
     async def search_by_dn(
         self,
         current_user: dict,
-        ou: str,
+        dn: str,
         object_classes: List[str],
         attrs: Optional[list] = None,
     ) -> list:
         client = SambaClient(**current_user)
         try:
-            samba_entries = client.search_by_ou(
-                ou=ou, object_classes=object_classes, attrs=attrs
+            samba_entries = client.search_by_dn(
+                dn=dn, object_classes=object_classes, attrs=attrs
             )
             res = []
             if attrs:

@@ -435,7 +435,7 @@ class SambaClient(object):
             )
         return user_obj
 
-    def search_by_ou(self, ou: str, object_classes: list, attrs: Optional[list] = None):
+    def search_by_dn(self, dn: str, object_classes: list, attrs: Optional[list] = None):
         object_classese_query = "".join(f"(objectclass={oc})" for oc in object_classes)
         if len(object_classes) == 1:
             search_filter = f"{object_classese_query}"
@@ -449,7 +449,7 @@ class SambaClient(object):
             query_attrs = default_attrs
         with self.transaction():
             lookup = self._client.search(
-                ou,
+                dn,
                 scope=ldb.SCOPE_SUBTREE,
                 expression=search_filter,
                 attrs=query_attrs,

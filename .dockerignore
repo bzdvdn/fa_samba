@@ -21,7 +21,7 @@ venv
 .vscode
 .vscode/
 vscode/
-
+app/tests
 *.pid
 
 **/.env

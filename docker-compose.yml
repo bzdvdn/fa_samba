@@ -22,7 +22,7 @@ services:
       - dc1_var:/usr/local/samba/var
 
   samba-ad-api:
-    image: samba-ad-api:test
+    image: bzdvdn/samba-ad-api:v0.0.1
     build:
       context: .
       dockerfile: docker/Dockerfile

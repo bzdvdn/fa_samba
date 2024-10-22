@@ -111,7 +111,9 @@ class AuthServiceManager:
 
     async def get_me(self, credentials: HTTPAuthorizationCredentials) -> UserDetail:
         current_user: dict = await self._verify_token(credentials.credentials, "access")
-        user = await self.get_user_by_username(current_user, username=current_user['username'])
+        user = await self.get_user_by_username(
+            current_user, username=current_user["username"]
+        )
         if not user:
             raise HTTPException(403, "invalid user token.")
         return user
@@ -136,8 +138,8 @@ class AuthServiceManager:
                     if add_user.userAccountControl
                     else None
                 ),
-                pwdLastSet=int(add_user.pwdLastSet) if add_user.pwdLastSet else None,
-                accountExpires=add_user.accountExpires,
+                pwdLastSet=None,
+                accountExpires=None,
             )
             samba_message = client.get_user_by_username(user_data["username"])
             return UserDetail.from_samba_message(samba_message)

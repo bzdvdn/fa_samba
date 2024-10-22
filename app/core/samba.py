@@ -79,8 +79,6 @@ class SambaClient(object):
                 attrs=[],
             )
 
-            if len(lookup) == 0:
-                return []
             users = [entry for entry in lookup]
 
         return users
@@ -293,10 +291,7 @@ class SambaClient(object):
             groupname=groupname, members=members, to_add=False
         )
 
-    def list_groups(
-        self,
-    ):
-        result = []
+    def list_groups(self) -> list:
         with self.transaction():
             search_dn = self._client.domain_dn()
             # filter_str = "(objectclass=group)"
@@ -313,22 +308,9 @@ class SambaClient(object):
                     "info",
                 ],
             )
-            if len(lookup) == 0:
-                return []
+            return [entry for entry in lookup]
 
-            for entry in lookup:
-                obj = {
-                    "sAMAccountName": entry.get("sAMAccountName", idx=0),
-                    "groupType": entry.get("groupType", idx=0),
-                    "description": entry.get("description", idx=0),
-                    "mail": entry.get("mail", idx=0),
-                    "info": entry.get("info", idx=0),
-                    "dn": entry.get("dn", idx=0),
-                }
-                result.append(obj)
-        return result
-
-    def list_users_by_group(self, groupname: str):
+    def list_users_by_group(self, groupname: str) -> list:
         result = []
         with self.transaction():
             search_dn = self._client.domain_dn()
@@ -340,7 +322,6 @@ class SambaClient(object):
                 attrs=["distinguishedName", "member"],
             )
             if len(group_lookup) == 0:
-                self._client.transaction_commit()
                 return []
             dn = group_lookup[0].get("distinguishedName", idx=0)
             filter_query = f"(&(objectclass=user)(memberOf={dn}))"
@@ -352,7 +333,6 @@ class SambaClient(object):
             )
 
             if len(lookup) == 0:
-                self._client.transaction_commit()
                 return []
             for entry in lookup:
                 dn_obj = entry.get("dn", idx=0)
@@ -441,7 +421,6 @@ class SambaClient(object):
             search_filter = f"{object_classese_query}"
         else:
             search_filter = f"(|{object_classese_query})"
-        result = []
         default_attrs = ["objectClass", "name", "dn"]
         if attrs:
             query_attrs = list(set(default_attrs + attrs))
@@ -454,9 +433,7 @@ class SambaClient(object):
                 expression=search_filter,
                 attrs=query_attrs,
             )
-            for entry in lookup:
-                result.append(entry)
-        return result
+            return [entry for entry in lookup]
 
     def list_ou(self) -> list:
         result = []
@@ -466,13 +443,11 @@ class SambaClient(object):
             lookup = self._client.search(
                 search_dn, scope=ldb.SCOPE_SUBTREE, expression=filter_str, attrs=[]
             )
-            if len(lookup) == 0:
-                return []
             return [entry for entry in lookup]
 
         return result
 
-    def get_ou(self, name) -> Optional[dict]:
+    def get_ou(self, name) -> Optional[ldb.Message]:
         with self.transaction():
             search_dn = self._client.domain_dn()
             filter_str = f"(&(objectclass=organizationalUnit)(name={name}))"

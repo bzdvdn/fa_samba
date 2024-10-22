@@ -1,7 +1,7 @@
 from typing import Optional, List
 from time import time
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, Field
 
 from app.config import settings
 
@@ -45,23 +45,19 @@ class BaseUser(BaseModel):
     st: Optional[str] = None
     streetAddress: Optional[str] = None
     title: Optional[str] = None
-    postOfficeBox: Optional[list] = None
+    postOfficeBox: Optional[list] = Field(default=None, example=["office box"])
 
 
 class AddUser(BaseUser):
     username: str
     password: str
-    userou: Optional[str] = None
-    pwdLastSet: Optional[int] = None
-    accountExpires: Optional[int] = None
+    userou: Optional[str] = Field(default=None, example="OU=my ou")
 
     def to_user_request(self) -> dict:
         user_request = {
             "username": self.username,
             "password": self.password,
             "userou": self.userou,
-            "pwdLastSet": self.pwdLastSet,
-            "accountExpires": self.accountExpires,
         }
         # for another fields
         all_fields = self.__fields__
